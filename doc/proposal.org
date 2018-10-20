@@ -1,0 +1,16 @@
+* Project Proposal
+
+Brian Brunner, Josh Curry, Matt Hansen, Dakota Kersten, Ethan Smith
+
+** Introduction
+
+   RISK is a strategy board game based around gaining control of the entire set of territories. In order to control a territory, a player must have one or more armies on the corresponding tile. The game starts with control of the territories distributed evenly amongst the players. A territory can be *captured* through an *attacking* mechanic. On a player's turn, they may choose to attack an enemy territory. In order for an attacking action to be valid, the attacker must have a territory, *a* adjacent to the territory they wish to attack, \( b \), and the number of armies, \( |a| \) must be greater than both 1 and \( |b| \). An attack consists of a the attacker choosing the number of dice to roll \( \{ n_a | n_a < num(a) \cap n_a <= 3 \} \), and the defender choosing the number of dice to roll \( \{ n_b | n_b <= num(b) \cap n_b <= 2 \} \). Both players roll their chosen number of dice, and the dice are paired one from each player's set of dice in descending order until one of the players has no remaining dice. The player with the lower value die in each pair loses an army, with the defending player having advantage in ties. The attacker may repeat this process until either the defender has lost all of their armies giving the attacking player control of the territory, or the attacker no longer has enough armies to satisfy the conditions for attacking.
+
+** Objective
+   
+   The goal of this project is to determine what optimal strategy is for both the attacker and defender given that they both have more armies than number of dice they are able to use. We will look at instances of attacks alone, and ignore the outcome in subsequent trials. We can then compare this to expected probabilities worked out through accepted rules, along with confirming or otherwise the advice of the game manual that more dice correlates to a higher chance of winning the attack.
+
+** Methodology 
+   
+   In order to get a large number of trials, as well as reduce the influence of variables outside of our control, we will generate numbers in the range 1 to 6 for each dice roll. We will simulate a random attack, and output the results for each choice the players could have made, taking the first random numbers for efficiency reasons. We will start with a sample size of 100,000 trials, and from there keep running trials until it converges within a predetermined uncertainty. This will be compared to the advice of the game manual and the calculated probabilities in order to determine the optimal strategy given an attacker wants to attack a given territory. 
+
