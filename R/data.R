@@ -26,7 +26,7 @@ conditions <- expand.grid(attack.armies = c(LARGE, SMALL),
 #' @author Brian
 trial <- function(attack.armies, defend.armies, attack.strategy, defend.strategy)
 {
-	if (attack.armies < defend.armies || attack.armies <= 1)
+	if (attack.armies <= 1)
 	{
 		FALSE
 	} else if (defend.armies <= 0) {
