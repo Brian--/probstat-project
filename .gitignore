@@ -1,9 +1,9 @@
 data/
 
 .Rproj.user
-.Rdata
+*.Rdata
 .Rhistory
 .Ruserdata
-.html
+*.html
 packrat/lib*/
 packrat/src/
