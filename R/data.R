@@ -139,6 +139,7 @@ conditions <- list(
 	rownames(trials.total.df) <<- trials.names
 	colnames(trials.total.df) <<- c("Attacker Wins", "Defender Wins")
 	colnames(trials.df) <<- trials.names
+	trials.total.df <<- data.frame(trials.total.df)
 
 	save(trials.df, trials.total.df, file = "trials.Rdata")
 })()
