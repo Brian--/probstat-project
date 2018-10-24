@@ -100,3 +100,5 @@ rownames(trials.total.df) <<- trials.names
 colnames(trials.total.df) <<- c("Attacker Wins", "Defender Wins")
 colnames(trials.df) <<- do.call(condition.str, subset(conditions, select = -n))
 })()
+
+save(trials.df, trials.total.df, file="trials.Rdata")
