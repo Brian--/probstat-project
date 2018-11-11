@@ -1,145 +1,127 @@
-library(magrittr)
+library(tidyverse)
 
 # Conditions under which to run trials. `n` only needs to be modified here now
-LARGE <- 20
-SMALL <- 5
+{
+	n <- 50L
 
-conditions <- list(
-	attack.armies = c(LARGE, SMALL),
-	defend.armies = c(LARGE, SMALL),
-	attack.strategy = 3:1,
-	defend.strategy = 2:1,
-	n = 50
-)
+	LARGE <- 20L
+	SMALL <- 5L
+	SIZES <- c(LARGE, SMALL)
 
-# Wrapped in function to be explicit about scope. I have no clue how R works...
-(function() {
-	#' Trial
-	#' Runs a sequence of attacks, and returns TRUE if the attacker wins, FALSE
-	#' when attacker loses
-	#'
-	#' @param attack.armies Total armies attacker has
-	#' @param defend.armies Total armies defender has
-	#' @param attack.strategy Max number of armies/dice attacker will use
-	#' @param defend.strategy Max number of armies/dice defender will use
-	#' @return Attacker wins?
-	#'
-	#' @examples
-	#' trial(LARGE, SMALL, 3, 2)
-	#'
-	#' @seealso trials
-	#' @author Brian
-	trial <<-
-		function(attack.armies,
-				 defend.armies,
-				 attack.strategy,
-				 defend.strategy)
-		{
-			if (attack.armies <= 1)
-				FALSE
-			else if (defend.armies <= 0)
-				TRUE
-			else {
-				attack.strategy <- min(attack.strategy, attack.armies)
-				defend.strategy <- min(defend.strategy, defend.armies)
-				total <- min(attack.strategy, defend.strategy)
+	conditions <- list(attack.strategy = 3:1,
+	                   defend.strategy = 2:1)
+}
 
-				attack.rolls <-
-					sample.int(6, attack.strategy, replace = TRUE) %>%
-					sort(decreasing = TRUE) %>%
-					head(total) # Take top n rolls
+#' Trial
+#' Runs a sequence of attacks, and returns TRUE if the attacker wins, FALSE
+#' if attacker loses
+#'
+#' @param attack.strategy Max number of armies/dice attacker will use
+#' @param defend.strategy Max number of armies/dice defender will use
+#' @param attack.armies Total armies attacker has
+#' @param defend.armies Total armies defender has
+#' @return Attacker wins?
+#'
+#' @examples
+#' trial(3, 2, LARGE, SMALL)
+#'
+#' @author Brian
+trial <-
+	function(attack.strategy,
+	         defend.strategy,
+	         attack.armies,
+	         defend.armies) {
+		if (attack.armies <= 1)
+			FALSE
+		else if (defend.armies <= 0)
+			TRUE
+		else {
+			# Make sure we're not rolling more armies than available
+			attack.strategy <- min(attack.strategy, attack.armies)
+			defend.strategy <- min(defend.strategy, defend.armies)
+			total <- min(attack.strategy, defend.strategy)
 
-				defend.rolls <-
-					sample.int(6, defend.strategy, replace = TRUE) %>%
-					sort(decreasing = TRUE) %>%
-					head(total) # Take top n rolls
+			# Closure to roll `total` dice with a given strategy
+			roll <- . %>%
+				sample.int(6, ., replace = TRUE) %>%
+				sort(decreasing = TRUE) %>%
+				head(total) # Take top n rolls
 
-				# result is vector of outcomes, TRUE if attacker wins, FALSE otherwise
-				result <- mapply(is_greater_than, attack.rolls, defend.rolls)
-				attack.wins <-
-					sum(result) # TRUE is 1, FALSE is 0. Sum gives number of attacker wins
-				defend.wins <- total - attack.wins
+			attack.rolls <- attack.strategy %>% roll
+			defend.rolls <- defend.strategy %>% roll
 
-				# Call trial again with updated army sizes
-				trial(
-					attack.armies - defend.wins,
-					defend.armies - attack.wins,
-					attack.strategy,
-					defend.strategy
-				)
-			}
+			# result is vector of outcomes, TRUE if attacker wins, FALSE otherwise
+			result <- attack.rolls > defend.rolls
+			attack.wins <-
+				sum(result) # TRUE is 1, FALSE is 0. Sum gives number of attacker wins
+			defend.wins <- total - attack.wins
+
+			# Call trial again with updated army sizes
+			trial(
+				attack.strategy,
+				defend.strategy,
+				attack.armies - defend.wins,
+				defend.armies - attack.wins
+			)
 		}
+	}
 
-	#' Trials
-	#' Run multiple trials of an attack, vectorized for multiple parameters
-	#' @param attack.armies
-	#' @param defend.armies
-	#' @param attack.strategy
-	#' @param defend.strategy
-	#' @param n
-	#'
-	#' @return a list of the result of trials
-	#'
-	#' @examples trials(LARGE, SMALL, 3, 2, 20)
-	#' @examples trials(c(LARGE, SMALL), c(LARGE, SMALL), 3:1, 2:1, 20)
-	#'
-	#' @seealso trial
-	#' @author Brian
-	trials <<-
-		Vectorize(function(attack.armies,
-						   defend.armies,
-						   attack.strategy,
-						   defend.strategy,
-						   n)
-			# Replicate is black magic, do not simplify...
-			replicate(
-				n,
-				trial(
-					attack.armies,
-					defend.armies,
-					attack.strategy,
-					defend.strategy
-				)
-			))
-	conditions.exp <- expand.grid(conditions)
-	trials.df <<- data.frame(do.call(trials, conditions.exp))
 
-	trials.total.df <<- colSums(trials.df)
-	trials.total.df <<-
-		cbind(trials.total.df,
-			  sapply(trials.total.df, purrr::partial(`-`, conditions$n)))
+#' Repeatedly
+#'
+#' Like replicate except using standard evaluation
+#'
+#' @param n Number of repetitions
+#' @param fn Function to apply
+#' @param ... Args for fn
+#'
+#' @return A vector of n repetitions of applying fn to ...
+#'
+#' @examples `repeatedly(4, sample(1:10, 1))`
+#'
+#' @author Brian
+repeatedly <-
+	function(n, fn, ...) {
+		sapply(integer(n), function(.)
+			fn(...))
+	}
 
-	size.str <- function(size)
-		ifelse(size <= SMALL, "SMALL", "LARGE")
+#' Size
+#'
+#' Convenience function to interpret an integer as a size parameter
+#'
+#' @param size A size to interpret as a string
+#'
+#' @return String representation of `size`
+#'
+#' @examples `size.str(LARGE)`
+#'
+#' @author Brian
+size.str <- function(size){
+	ifelse(size <= min(SIZES), "SMALL", "LARGE")
+}
 
-	#' Condition String
-	#'
-	#' @return A mapping from df of conditions to strings for names
-	#'
-	#' @author Brian
-	condition.str <- Vectorize(function(attack.armies,
-										defend.armies,
-										attack.strategy,
-										defend.strategy)
-	{
-		paste(
-			size.str(attack.armies),
-			"v.",
-			size.str(defend.armies),
-			"rolling",
+# Narrow form tibble of trials
+trials <<-
+	conditions %>%
+	expand.grid %>% # All possible combinations
+	as_tibble %>%
+	list %>% # Wrap in a list so rep expands that instead of the tibble
+	rep(n) %>% # N sets of trials
+	bind_rows %>% # Bind into big tibble
+	rowwise %>% # Group by row
+	mutate(
+		# Add random size
+		attack.armies = sample(SIZES, 1),
+		defend.armies = sample(SIZES, 1),
+		# Run trial with given conditions
+		won = trial(
 			attack.strategy,
-			"v.",
-			defend.strategy
+			defend.strategy,
+			attack.armies,
+			defend.armies
 		)
-	})
+	)
 
-
-	trials.names <-
-		do.call(condition.str, subset(conditions.exp, select = -n))
-	rownames(trials.total.df) <<- trials.names
-	colnames(trials.total.df) <<- c("Attacker Wins", "Defender Wins")
-	colnames(trials.df) <<- trials.names
-	trials.total.df <<- data.frame(trials.total.df)
-
-	save(trials.df, trials.total.df, file = "trials.Rdata")
-})()
+# Sample view of trials
+trials
